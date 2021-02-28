@@ -15,6 +15,7 @@
 #include "proc.h"
 #include "x86.h"
 
+
 static void consputc(int);
 
 static int panicked = 0;
@@ -179,6 +180,8 @@ consputc(int c)
 }
 
 #define INPUT_BUF 128
+char cpy_buff[INPUT_BUF] = {0};
+uint cpy_idx;
 struct {
   char buf[INPUT_BUF];
   uint r;  // Read index
@@ -192,7 +195,6 @@ void
 consoleintr(int (*getc)(void))
 {
   int c, doprocdump = 0;
-
   acquire(&cons.lock);
   while((c = getc()) >= 0){
     switch(c){
@@ -213,6 +215,22 @@ consoleintr(int (*getc)(void))
         consputc(BACKSPACE);
       }
       break;
+		case C('C'):
+			if(input.e != input.w){
+				cpy_idx = 0;
+				while(input.w + cpy_idx != input.e){
+					cpy_buff[cpy_idx] = input.buf[(input.w+cpy_idx) % INPUT_BUF];
+					cpy_idx++;
+				}
+			} 
+			break;
+		case C('V'):
+			for(int i = 0; i < cpy_idx; i++)
+			{
+				consputc(cpy_buff[i]);
+				input.e++;
+			}
+			break;
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
